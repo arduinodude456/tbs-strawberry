@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>TBS Strawberry – Smart Display von TBS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="TBS Strawberry – kompaktes Smart-Display von TBS mit ESP32/ESP32-C6, ideal für Statusanzeigen, IoT und mehr." />
+
+  <!-- Google Font: Ubuntu -->
+  <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg: #05060a;
+      --bg-accent: rgba(15, 20, 35, 0.9);
+      --glass: rgba(20, 30, 55, 0.75);
+      --glass-strong: rgba(30, 45, 80, 0.9);
+      --primary: #ff4b8b;
+      --primary-soft: rgba(255, 75, 139, 0.35);
+      --accent: #4be0ff;
+      --accent-soft: rgba(75, 224, 255, 0.25);
+      --text-main: #f5f7ff;
+      --text-muted: #a5b0d0;
+      --border-glass: rgba(255, 255, 255, 0.08);
+      --shadow-glass: 0 18px 45px rgba(0, 0, 0, 0.7);
+      --radius-xl: 26px;
+      --radius-lg: 18px;
+      --radius-md: 12px;
+      --transition-fast: 0.18s ease-out;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: "Ubuntu", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #151b2f 0, #05060a 55%, #000000 100%);
+      color: var(--text-main);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 16px 48px;
+      gap: 32px;
+    }
+
+    .page-wrap {
+      width: 100%;
+      max-width: 1080px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    /* Liquid Glass Card */
+    .glass {
+      background: radial-gradient(circle at top left, var(--primary-soft), transparent 55%),
+                  radial-gradient(circle at bottom right, var(--accent-soft), transparent 55%),
+                  var(--glass);
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--border-glass);
+      box-shadow: var(--shadow-glass);
+      backdrop-filter: blur(22px) saturate(140%);
+      -webkit-backdrop-filter: blur(22px) saturate(140%);
+      padding: 24px 26px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .glass::before {
+      content: "";
+      position: absolute;
+      inset: -40%;
+      background:
+        radial-gradient(circle at 10% 0%, rgba(255, 255, 255, 0.08), transparent 55%),
+        radial-gradient(circle at 90% 100%, rgba(255, 255, 255, 0.04), transparent 55%);
+      opacity: 0.7;
+      mix-blend-mode: screen;
+      pointer-events: none;
+    }
+
+    .glass-inner {
+      position: relative;
+      z-index: 1;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    /* Logo: 3 Kreise T/B/S */
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .logo-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: #ffffff;
+      text-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.7);
+    }
+
+    .logo-circle.red   { background: radial-gradient(circle at 30% 20%, #ff9fbf, #ff275d); }
+    .logo-circle.green { background: radial-gradient(circle at 30% 20%, #b5ffb5, #00c853); }
+    .logo-circle.blue  { background: radial-gradient(circle at 30% 20%, #a0e4ff, #2979ff); }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .brand-text span {
+      font-size: 13px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .brand-text h1 {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+
+    nav {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .nav-link {
+      font-size: 13px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      text-decoration: none;
+      background: rgba(10, 15, 30, 0.6);
+      transition: var(--transition-fast);
+    }
+
+    .nav-link:hover {
+      border-color: var(--primary);
+      color: var(--text-main);
+      background: rgba(20, 25, 45, 0.9);
+    }
+
+    /* Hero */
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.1fr);
+      gap: 26px;
+      align-items: center;
+      margin-top: 10px;
+    }
+
+    @media (max-width: 800px) {
+      .hero {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .hero-title {
+      font-size: clamp(28px, 4vw, 34px);
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .hero-subtitle {
+      font-size: 15px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 18px;
+    }
+
+    .hero-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .badge {
+      font-size: 11px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(5, 10, 25, 0.8);
+      color: var(--text-muted);
+    }
+
+    .badge.primary {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: rgba(255, 75, 139, 0.08);
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .btn {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+      cursor: pointer;
+      transition: var(--transition-fast);
+      overflow: hidden;
+    }
+
+    .btn-primary {
+      color: #ffffff;
+      background: linear-gradient(135deg, #ff4b8b, #ff7a4b);
+      box-shadow: 0 12px 30px rgba(255, 75, 139, 0.35);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 16px 40px rgba(255, 75, 139, 0.5);
+    }
+
+    .btn-ghost {
+      color: var(--text-main);
+      background: rgba(10, 15, 30, 0.8);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .btn-ghost:hover {
+      background: rgba(20, 25, 45, 0.95);
+      border-color: var(--accent);
+    }
+
+    .btn span.icon {
+      font-size: 16px;
+    }
+
+    /* Device preview (liquid glass frame) */
+    .device-preview {
+      border-radius: var(--radius-lg);
+      background: radial-gradient(circle at top, rgba(255, 255, 255, 0.08), transparent 55%),
+                  radial-gradient(circle at bottom, rgba(0, 0, 0, 0.7), transparent 60%),
+                  var(--glass-strong);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.85);
+      padding: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .device-preview-inner {
+      border-radius: 18px;
+      background: radial-gradient(circle at top left, #1b2a4a, #050814);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .device-screen {
+      border-radius: 14px;
+      background: radial-gradient(circle at top, #1f7cff, #0b1a3a);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 22px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.65);
+    }
+
+    .device-screen-text {
+      text-align: center;
+      color: #ffffff;
+      text-shadow: 0 0 12px rgba(0, 0, 0, 0.8);
+    }
+
+    .device-screen-text .line1 {
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+
+    .device-screen-text .line2 {
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .device-footer {
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .device-dots {
+      display: flex;
+      gap: 4px;
+    }
+
+    .device-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.35);
+    }
+
+    /* Sections */
+    .section {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+      gap: 24px;
+    }
+
+    @media (max-width: 900px) {
+      .section {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .section-title {
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+
+    .section-text {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    .feature-list {
+      list-style: none;
+      margin-top: 10px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .feature-list li {
+      margin-bottom: 6px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .feature-list li::before {
+      content: "•";
+      color: var(--accent);
+      margin-top: 1px;
+    }
+
+    .card {
+      border-radius: var(--radius-lg);
+      background: rgba(10, 15, 30, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 16px 18px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.7);
+    }
+
+    .card h3 {
+      font-size: 15px;
+      margin-bottom: 6px;
+    }
+
+    .card p {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .download-box {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .download-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    footer {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 8px;
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <main class="page-wrap">
+    <!-- HEADER + HERO -->
+    <section class="glass">
+      <div class="glass-inner">
+        <header>
+          <div class="brand">
+            <div class="logo" aria-label="TBS Logo">
+              <div class="logo-circle red">T</div>
+              <div class="logo-circle green">B</div>
+              <div class="logo-circle blue">S</div>
+            </div>
+            <div class="brand-text">
+              <span>Hersteller: TBS</span>
+              <h1>TBS Strawberry</h1>
+            </div>
+          </div>
+          <nav>
+            <a href="#features" class="nav-link">Features</a>
+            <a href="#manual" class="nav-link">Anleitung</a>
+            <a href="#details" class="nav-link">Technische Daten</a>
+          </nav>
+        </header>
+
+        <div class="hero">
+          <div>
+            <h2 class="hero-title">Das kleine Display mit großer Wirkung.</h2>
+            <p class="hero-subtitle">
+              TBS Strawberry ist ein kompaktes Smart-Display auf Basis eines ESP‑Controllers – ideal für
+              Statusanzeigen, IoT‑Dashboards, Visualisierungen und interaktive Projekte. Entwickelt von TBS,
+              mit Fokus auf Klarheit, Einfachheit und Spaß am Basteln.
+            </p>
+
+            <div class="hero-badges">
+              <span class="badge primary">Dark Liquid Glass UI</span>
+              <span class="badge">ESP‑basierte Plattform</span>
+              <span class="badge">LVGL‑Display</span>
+              <span class="badge">Open‑Source‑freundlich</span>
+            </div>
+
+            <div class="hero-actions">
+              <!-- Passe den Link zur PDF später an (z. B. /assets/TBS-Strawberry-Anleitung.pdf) -->
+              <a href="assets/TBS-Strawberry-Anleitung.pdf" class="btn btn-primary" target="_blank" rel="noopener">
+                <span class="icon">⬇️</span>
+                <span>Anleitung (PDF) herunterladen</span>
+              </a>
+              <a href="#details" class="btn btn-ghost">
+                <span class="icon">📐</span>
+                <span>Technische Details ansehen</span>
+              </a>
+            </div>
+          </div>
+
+          <div class="device-preview" aria-label="Visualisierung des TBS Strawberry Geräts">
+            <div class="device-preview-inner">
+              <div class="device-screen">
+                <div class="device-screen-text">
+                  <div class="line1">Hallo,</div>
+                  <div class="line2">Maria!</div>
+                </div>
+              </div>
+              <div class="device-footer">
+                <span>TBS Strawberry – Demo‑Screen</span>
+                <div class="device-dots">
+                  <span class="device-dot"></span>
+                  <span class="device-dot"></span>
+                  <span class="device-dot"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FEATURES + MANUAL -->
+    <section class="glass" id="features">
+      <div class="glass-inner section">
+        <div>
+          <h2 class="section-title">Was macht TBS Strawberry besonders?</h2>
+          <p class="section-text">
+            TBS Strawberry ist ein vielseitiges, kleines Gerät, das sich perfekt in deine Projekte einfügt –
+            egal ob als Statusanzeige, Mini‑Dashboard, Info‑Panel oder als liebevoll gestaltetes Display
+            für einzelne Personen, wie im Beispiel mit „Hallo, Maria!“.
+          </p>
+          <ul class="feature-list">
+            <li>Hochwertiges Farbdisplay mit moderner LVGL‑Oberfläche.</li>
+            <li>ESP‑basierter Controller (z. B. ESP32‑C6 auf dem Board) für flexible Firmware‑Entwicklung.</li>
+            <li>Ideal für IoT‑Anwendungen, Visualisierung von Sensordaten oder personalisierte Anzeigen.</li>
+            <li>Dark‑Mode‑Design mit „Liquid Glass“‑Optik für ein modernes Erscheinungsbild.</li>
+            <li>Offene Struktur – perfekt für Maker, Entwickler:innen und Lernprojekte.</li>
+          </ul>
+        </div>
+
+        <div id="manual">
+          <div class="card">
+            <h3>Benutzerhandbuch &amp; Schnellstart</h3>
+            <p>
+              Die vollständige Anleitung erklärt dir Schritt für Schritt, wie du TBS Strawberry in Betrieb
+              nimmst, Firmware flashst, WLAN (falls vorhanden) konfigurierst und eigene Anzeigen erstellst.
+            </p>
+            <div class="download-box">
+              <a href="assets/TBS-Strawberry-Anleitung.pdf" class="btn btn-primary" target="_blank" rel="noopener">
+                <span class="icon">📄</span>
+                <span>PDF‑Anleitung herunterladen</span>
+              </a>
+              <div class="download-meta">
+                <strong>Dateiname:</strong> <code>TBS-Strawberry-Anleitung.pdf</code><br />
+                <strong>Hinweis:</strong> Lege die PDF‑Datei im GitHub‑Repository z. B. unter
+                <code>/assets/TBS-Strawberry-Anleitung.pdf</code> ab, damit der Link funktioniert.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TECH DETAILS -->
+    <section class="glass" id="details">
+      <div class="glass-inner section">
+        <div>
+          <h2 class="section-title">Technische Eckdaten (Beispiel)</h2>
+          <p class="section-text">
+            Die genauen Spezifikationen können je nach Board‑Revision variieren. Passe diesen Abschnitt
+            einfach an deine reale Hardware an.
+          </p>
+          <ul class="feature-list">
+            <li>Controller: ESP‑basierter Mikrocontroller (z. B. ESP32‑C6 auf dem Board).</li>
+            <li>Display: Farb‑LCD/TFT, LVGL‑unterstützt, kapazitive oder resistive Touch‑Option möglich.</li>
+            <li>Stromversorgung: USB‑C oder 5 V‑Versorgung über Pin‑Header (abhängig vom Board).</li>
+            <li>Kommunikation: UART, SPI, I²C, ggf. WLAN/BLE je nach eingesetztem Modul.</li>
+            <li>Firmware: ESP‑IDF‑basiert, C/C++ mit LVGL‑UI.</li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="card">
+            <h3>Projekt auf GitHub Pages hosten</h3>
+            <p>
+              Um diese Seite auf GitHub Pages zu veröffentlichen, lege diese Datei als
+              <code>index.html</code> im <code>main</code>‑Branch oder im <code>docs/</code>‑Ordner deines
+              Repositories ab und aktiviere GitHub Pages in den Repository‑Einstellungen.
+            </p>
+            <p style="margin-top: 8px;">
+              Die Anleitung als PDF kannst du z. B. im Ordner <code>assets/</code> speichern und den Link
+              oben entsprechend anpassen.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      &copy; <span id="year"></span> TBS – TBS Strawberry. Design: Dark Liquid Glass.  
+      <br />
+      Dieses Projekt kann auf <a href="https://pages.github.com/" target="_blank" rel="noopener">GitHub Pages</a> gehostet werden.
+    </footer>
+  </main>
+
+  <script>
+    // Jahr im Footer automatisch setzen
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
